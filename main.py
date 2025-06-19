@@ -1,46 +1,47 @@
-## Этап 2. Переменные окружения, логирование и маршрутизация
+# main.py
 
-# Дополнительный гайд по aiogram3 https://mastergroosha.github.io/aiogram-3-guide/
-# Документация по aiogram3 https://docs.aiogram.dev/en/latest/
-# Ссылка на форум aiogram в тг: https://t.me/aiogram
-
-# 0. Установить зависимости
-# pip install aiogram
-# pip install python-dotenv
-
-# 1. Импорт
-import logging  # чтобы отследить состояние бота, используем логи
-import asyncio  # асинхронный ввод-вывод
-from aiogram import Bot, Dispatcher, types, filters  # класс бота и диспетчера
-from config import TOKEN
-from handlers import register_message_handler, commands_for_bot
-from db import async_create_table
+import asyncio
+from aiogram import Bot, Dispatcher, types
+from handlers.start import router, pending_users
+import config
 
 
-async def main() -> None:
-    """polling-запуск проекта"""
+async def set_commands(bot: Bot):
+    commands = [
+        types.BotCommand(command="/start", description="Начать"),
+        types.BotCommand(command="/help", description="Помощь и информация")
+    ]
+    await bot.set_my_commands(commands)
 
-    # Установить общий уровень логирования
-    logging.basicConfig(level=logging.DEBUG)
 
-    # Экзампляры бота и диспетчера
-    bot = Bot(TOKEN)
+async def check_subscriptions(bot: Bot):
+    while True:
+        for user_id in list(pending_users):
+            try:
+                chat_member = await bot.get_chat_member(config.GROUP_ID, user_id)
+                if chat_member.status in ['member', 'administrator', 'creator']:
+                    await bot.send_message(user_id, config.LINKS_MESSAGE)
+                    pending_users.discard(user_id)
+            except Exception as e:
+                print(f"[ERROR] Не удалось проверить пользователя {user_id}: {e}")
+
+        await asyncio.sleep(10)
+
+
+async def main():
+    bot = Bot(token=config.BOT_TOKEN)
     dp = Dispatcher()
 
-    # Функция для вызова обработчиков
-    await register_message_handler(dp)
+    # Устанавливаем команды
+    await set_commands(bot)
 
-    # Загрузка команд
-    await bot.set_my_commands(commands=commands_for_bot)
+    dp.include_router(router)
 
-    # polling-запуск
+    # Запуск фоновой проверки
+    asyncio.create_task(check_subscriptions(bot))
+
     await dp.start_polling(bot)
 
 
-# 5. Запуск
 if __name__ == "__main__":
-    try:
-        asyncio.run(async_create_table())
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logging.info("GoodBye!")
+    asyncio.run(main())

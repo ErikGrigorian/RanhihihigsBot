@@ -1,10 +1,4 @@
-# Файл для хранения секретов
-
-import os
-from dotenv import load_dotenv
-
-# предварительно создаем файл .env и помещаем туда Токен
-load_dotenv()
-
-# переменные окружения для проекта
-TOKEN: str = os.getenv('TOKEN')
+BOT_TOKEN = "8092243865:AAGg4r19zRPYzVJaSUVAQkgfySWPqOAVOus"
+GROUP_ID = -1002616176240 # ID канала
+LINKS_MESSAGE = "Вот ваши ссылки:\n https://t.me/+TlAVslj4JCMwZGYy" #ссылка на канал
+GROUP_INVITE_LINK = "https://t.me/+wYz_4c7dERc0Mjgy"   # Ссылка-приглашение
